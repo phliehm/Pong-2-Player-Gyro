@@ -18,7 +18,7 @@ int y1 = 0;
 int y2 = 0;
 int score1 = 0; // Player 1's score
 int score2 = 0; // Player 2's score
-
+int paddle_length  = 20;
 // Ball properties
 int ballX = 64, ballY = 80;
 int ballSize = 4;
@@ -61,11 +61,11 @@ void loop() {
 }
 
 int mapAngleToScreen(float angle) {
-    return map(angle, -90, 90, 0, tft.height() - 20);
+    return map(angle, -45, 45, 0, tft.height() - paddle_length); // change the angles to smaller/higher values for faster/slower moving peddals
 }
 
 void drawRectangle(int x, int y, uint16_t color) {
-    tft.fillRect(x, y, 4, 20, color);
+    tft.fillRect(x, y, 4, paddle_length, color);
 }
 
 void drawPaddles(){
@@ -87,7 +87,7 @@ void updateBallPosition() {
 
     // Left paddle collision
     if (ballX <= 4) {
-        if (ballY + ballSize >= lastY1 && ballY <= lastY1 + 20) {
+        if (ballY + ballSize >= lastY1 && ballY <= lastY1 + paddle_length) {
             ballVelX = -ballVelX; // Bounce off the paddle
         } else if (ballX < 0) {
             // Player 2 scores
@@ -99,7 +99,7 @@ void updateBallPosition() {
 
     // Right paddle collision
     else if (ballX >= tft.width() - 8) {
-        if (ballY + ballSize >= lastY2 && ballY <= lastY2 + 20) {
+        if (ballY + ballSize >= lastY2 && ballY <= lastY2 + paddle_length) {
             ballVelX = -ballVelX; // Bounce off the paddle
         } else if (ballX > tft.width() - ballSize) {
             // Player 1 scores
@@ -130,7 +130,6 @@ void newPoint() {
     drawPaddles();
     lastY1 = y1;
     lastY2 = y2;
-    drawPaddles();
   
   }
 }
