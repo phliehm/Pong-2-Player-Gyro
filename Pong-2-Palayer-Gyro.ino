@@ -14,9 +14,11 @@ MPU6050 mpu2(Wire);
 
 int lastY1 = 0;
 int lastY2 = 0;
+int y1 = 0;
+int y2 = 0;
 int score1 = 0; // Player 1's score
 int score2 = 0; // Player 2's score
-
+int paddle_length  = 20;
 // Ball properties
 int ballX = 64, ballY = 80;
 int ballSize = 4;
@@ -44,13 +46,10 @@ void loop() {
     mpu1.update();
     mpu2.update();
 
-    int y1 = mapAngleToScreen(mpu1.getAngleX());
-    int y2 = mapAngleToScreen(mpu2.getAngleX());
+    y1 = mapAngleToScreen(mpu1.getAngleX());
+    y2 = mapAngleToScreen(mpu2.getAngleX());
 
-    draw_rectangle(0, lastY1, ST7735_BLACK);
-    draw_rectangle(124, lastY2, ST7735_BLACK);
-    draw_rectangle(0, y1, ST7735_WHITE);
-    draw_rectangle(124, y2, ST7735_WHITE);
+    drawPaddles();
     lastY1 = y1;
     lastY2 = y2;
 
@@ -62,12 +61,20 @@ void loop() {
 }
 
 int mapAngleToScreen(float angle) {
-    return map(angle, -90, 90, 0, tft.height() - 20);
+    return map(angle, -45, 45, 0, tft.height() - paddle_length); // change the angles to smaller/higher values for faster/slower moving peddals
 }
 
-void draw_rectangle(int x, int y, uint16_t color) {
-    tft.fillRect(x, y, 4, 20, color);
+void drawRectangle(int x, int y, uint16_t color) {
+    tft.fillRect(x, y, 4, paddle_length, color);
 }
+
+void drawPaddles(){
+  drawRectangle(0, lastY1, ST7735_BLACK);
+  drawRectangle(124, lastY2, ST7735_BLACK);
+  drawRectangle(0, y1, ST7735_WHITE);
+  drawRectangle(124, y2, ST7735_WHITE);
+}
+
 
 void updateBallPosition() {
     ballX += ballVelX;
@@ -80,24 +87,24 @@ void updateBallPosition() {
 
     // Left paddle collision
     if (ballX <= 4) {
-        if (ballY + ballSize >= lastY1 && ballY <= lastY1 + 20) {
+        if (ballY + ballSize >= lastY1 && ballY <= lastY1 + paddle_length) {
             ballVelX = -ballVelX; // Bounce off the paddle
         } else if (ballX < 0) {
             // Player 2 scores
             score2++;
-            resetBall();
+            newPoint();
             displayScore();
         }
     }
 
     // Right paddle collision
     else if (ballX >= tft.width() - 8) {
-        if (ballY + ballSize >= lastY2 && ballY <= lastY2 + 20) {
+        if (ballY + ballSize >= lastY2 && ballY <= lastY2 + paddle_length) {
             ballVelX = -ballVelX; // Bounce off the paddle
         } else if (ballX > tft.width() - ballSize) {
             // Player 1 scores
             score1++;
-            resetBall();
+            newPoint();
             displayScore();
         }
     }
@@ -109,6 +116,23 @@ void resetBall() {
     ballY = tft.height() / 2;
 }
 
+void newPoint() {
+  resetBall();
+  tft.fillRect(ballX, ballY, ballSize, ballSize, ST7735_WHITE);
+  int timer = millis();
+  while (millis()-timer < 1000){
+    mpu1.update();
+    mpu2.update();
+
+    y1 = mapAngleToScreen(mpu1.getAngleX());
+    y2 = mapAngleToScreen(mpu2.getAngleX());
+
+    drawPaddles();
+    lastY1 = y1;
+    lastY2 = y2;
+  
+  }
+}
 void displayScore() {
     tft.fillRect(0, 0, tft.width(), 10, ST7735_BLACK); // Clear the score area
     tft.setTextColor(ST7735_WHITE);
