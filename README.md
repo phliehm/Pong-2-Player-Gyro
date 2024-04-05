@@ -1,4 +1,4 @@
-# Pong-2-Palayer-Gyro
+# Pong-2-Player-Gyro
  Pong Game - Arduino - 2 Player - Gyros
 
 ## Purpose
