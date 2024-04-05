@@ -34,6 +34,13 @@ Arduino based Pong Game for 2 players. The paddles are controlled with gyro sens
   
 Thats the same for both GY-521, howwever, **one of them needs to connect the AD0 pin to 5V**. This will change the I2C address so the two gyros have a different address.  
 
+**Attention**: The TFT 1.44" display exists in different variations, different pinouts and electronics. Some have a voltage step down module integrated, some not, it seems as if therefore some need to work with 3.3V instead of 5V.   
+Mine doesnt't have a step down module, I still tried it with 5V and I didn't fry it;) But you should be aware of the risk. (The Arduino Nano logic is 5V)
+
+# Breadboard layout
+
+![Circuit](Cicuit/Pong-2-Player-Gyro_Breadboard.jpg)
+
 # Non standard Arduino libraries
 
 [Adafruit_ST7735](https://github.com/adafruit/Adafruit-ST7735-Library)  
