@@ -21,7 +21,7 @@ Arduino based Pong Game for 2 players. The paddles are controlled with gyro sens
    SCL|D13  
    SDA|D11  
    RES|D8  
-   DCR|9  
+   DC|9  
    CS|CS  
 
 |GY-521|Arduino Nano|
