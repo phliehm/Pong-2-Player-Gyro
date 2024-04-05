@@ -10,6 +10,7 @@ Arduino based Pong Game for 2 players. The paddles are controlled with gyro sens
 - Arduino Nano (Uno works as well)
 - 2x Gyro sensors GY-521
 - TFT 1.44" with ST7735S controller
+- 2x buttons
 - calbles, circuit board, 3D-printed controller / housing
 
 ## Pins
