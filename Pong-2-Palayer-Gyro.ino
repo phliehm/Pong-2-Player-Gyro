@@ -18,19 +18,21 @@ int y1 = 0;
 int y2 = 0;
 int score1 = 0; // Player 1's score
 int score2 = 0; // Player 2's score
+int max_score = 5;
 int paddle_length  = 20;
 // Ball properties
 int ballX = 64, ballY = 80;
 int ballSize = 4;
-int ballVelX = 2, ballVelY = 2;
+int ballVelX = 1, ballVelY = 1;
 
 void setup() {
     Serial.begin(9600);
     Wire.begin();
+
     tft.initR(INITR_REDTAB);
     tft.setRotation(2);
     tft.fillScreen(ST7735_BLACK);
-
+    
     mpu1.setAddress(0x68);
     mpu2.setAddress(0x69);
     mpu1.begin();
@@ -40,6 +42,7 @@ void setup() {
 
     // Display initial score
     displayScore();
+    
 }
 
 void loop() {
@@ -92,6 +95,10 @@ void updateBallPosition() {
         } else if (ballX < 0) {
             // Player 2 scores
             score2++;
+            if (score2 >= max_score) {
+              someoneWon(" Player 2");
+            }
+
             newPoint();
             displayScore();
         }
@@ -104,6 +111,9 @@ void updateBallPosition() {
         } else if (ballX > tft.width() - ballSize) {
             // Player 1 scores
             score1++;
+            if (score1 >= max_score) {
+              someoneWon(" Player 1");
+            }
             newPoint();
             displayScore();
         }
@@ -132,6 +142,26 @@ void newPoint() {
     lastY2 = y2;
   
   }
+}
+
+void someoneWon(String player){
+  showWinnerMessage(player);
+  score1 = 0;
+  score2 = 0;
+  delay(2000);
+  tft.fillScreen(ST7735_BLACK);
+}
+
+void showWinnerMessage(String player) {
+  tft.fillScreen(ST7735_BLACK);
+  tft.setTextColor(ST7735_WHITE);
+  tft.setCursor(5,tft.height()/4);
+  tft.setTextSize(1.5);
+  tft.print("    The Winner is");
+  tft.setCursor(5,tft.height()/2);
+  tft.setTextSize(2);
+  tft.print(player);
+
 }
 void displayScore() {
     tft.fillRect(0, 0, tft.width(), 10, ST7735_BLACK); // Clear the score area
