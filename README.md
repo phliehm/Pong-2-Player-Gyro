@@ -7,10 +7,10 @@ Arduino based Pong Game for 2 players. The paddles are controlled with gyro sens
 
 ## Part list
 
-- Arduino Nano (Uno works as well)
+- Arduino Nano (Uno works as well with same pins, other microcontrollers would work as well but you have to figure out the pins)
 - 2x Gyro sensors GY-521
 - TFT 1.44" with ST7735S controller
-- 2x buttons
+- 2x push buttons
 - calbles, circuit board, 3D-printed controller / housing
 
 ## Pins
@@ -48,7 +48,7 @@ Mine doesnt't have a step down module, I still tried it with 5V and I didn't fry
 [MPU6050_light](https://github.com/rfetick/MPU6050_light)  
 Both can be installed via the arduino library manager  
 
-## 3D-Printing Files
+# 3D-Printing Files
 - Controllers, basically only holders for the gyros. [Link](https://cad.onshape.com/documents/e8f608abf657cef6dc1b4666/w/007233a8e505381b6e8c31cd/e/1e409a07bb671ca26936d715)  
   --> STLs can be found in the STL folder
 - Case (needs to be done)
