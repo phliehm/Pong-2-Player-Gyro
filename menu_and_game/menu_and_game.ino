@@ -38,6 +38,15 @@ struct MenuItem {
     int submenuSize;     // Number of items in the submenu
 };
 
+// Enum for game mode
+enum GameMode { PvP, PvC };
+GameMode currentGameMode = PvP;
+
+// npc Variables
+int npcReactionDelay = 20; // Milliseconds delay
+unsigned long lastNpcMoveTime = 0;
+int npcOffset = 0; // Offset to simulate intentional errors
+
 // Function prototypes
 void setupMPU6050(MPU6050& mpu, uint8_t address);
 void displayMenu();
@@ -51,6 +60,8 @@ void setBallSpeedMedium();
 void setBallSpeedFast();
 void setEasyMode();
 void setHardMode();
+void setPvPMode();
+void setPvCMode();
 void applyPaddleAcceleration();
 void noop() {}
 void preGameMenu();
@@ -65,6 +76,7 @@ void displayScore();
 int mapAngleToScreen(float angle);
 enum CollisionType { NONE, WALL_TOP, WALL_BOTTOM, PADDLE_LEFT, PADDLE_RIGHT, OUT_OF_BOUNDS_LEFT, OUT_OF_BOUNDS_RIGHT };
 CollisionType detectCollision();
+
 void handleScoring(ProgramState winner);
 
 // Menu item arrays
@@ -74,10 +86,10 @@ MenuItem speedMenu[] = {
     {"FAST", setBallSpeedFast, nullptr, 0},
     {"BACK", goBack, nullptr, 0}
 };
+// Mode Menu actions
 MenuItem modeMenu[] = {
-    {"PvP", noop, nullptr, 0},
-    {"PvC", noop, nullptr, 0},
-    {"CvC", noop, nullptr, 0},
+    {"PvP", setPvPMode, nullptr, 0},
+    {"PvC", setPvCMode, nullptr, 0},
     {"BACK", goBack, nullptr, 0}
 };
 // Update the difficulty menu to call the new functions
@@ -220,6 +232,47 @@ void setHardMode() {
     goBack();
 }
 
+// Set the game mode to Player vs. Player
+void setPvPMode() {
+    currentGameMode = PvP;
+    goBack();
+}
+
+// Set the game mode to Player vs. npc
+void setPvCMode() {
+    currentGameMode = PvC;
+    goBack();
+}
+
+// Set npc difficulty
+void setEasyNpc() {
+    npcReactionDelay = 300; // Slow reaction time
+    npcOffset = 10; // Larger offset
+}
+
+void setHardNpc() {
+    npcReactionDelay = 100; // Faster reaction time
+    npcOffset = 5; // Smaller offset
+}
+
+// Function to update the npc paddle
+void updateNpcPaddle(int &npcPaddleY, int ballY, int paddleSpeed) {
+    if (millis() - lastNpcMoveTime > npcReactionDelay) {
+        int targetY = ballY + npcOffset;
+        if (npcPaddleY < targetY) {
+            npcPaddleY += paddleSpeed;
+        } else if (npcPaddleY > targetY) {
+            npcPaddleY -= paddleSpeed;
+        }
+
+        lastNpcMoveTime = millis();
+    }
+
+    // Ensure paddle stays within screen bounds
+    npcPaddleY = constrain(npcPaddleY, 0, tft.height() - PADDLE_LENGTH);
+}
+
+
 // Return to the main menu
 void goBack() {
     currentMenu = mainMenu;
@@ -236,17 +289,22 @@ void startGame() {
 }
 
 // Main game loop for ball and paddle movements
-void mainGame() {
-    mpu1.update();
-    mpu2.update();
 
+void mainGame() {
+    mpu1.update(); // Always update the first player's gyroscope
     y1 = mapAngleToScreen(mpu1.getAngleX());
-    y2 = mapAngleToScreen(mpu2.getAngleX());
+
+    if (currentGameMode == PvP) {
+        mpu2.update(); // Second player is a human
+        y2 = mapAngleToScreen(mpu2.getAngleX());
+    } else if (currentGameMode == PvC) {
+        updateNpcPaddle(y2, ballY, 2); // npc controls the second paddle
+
+    }
 
     drawPaddles();
-    lastY1 = y1;
     lastY2 = y2;
-
+    lastY1 = y1;
     tft.fillRect(ballX, ballY, BALL_SIZE, BALL_SIZE, ST7735_BLACK);
     updateBallPosition();
     tft.fillRect(ballX, ballY, BALL_SIZE, BALL_SIZE, ST7735_WHITE);
