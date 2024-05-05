@@ -20,6 +20,10 @@ bool finished = false;
 enum ProgramState { MENU, GAME, PLAYER1, PLAYER2 };
 ProgramState currentState = MENU;
 
+// Add Difficulty Settings
+enum DifficultyLevel { EASY, HARD };
+DifficultyLevel currentDifficulty = EASY;
+
 // TFT Display object initialization
 Adafruit_ST7735 tft(TFT_CS, TFT_DC, TFT_RST);
 
@@ -45,6 +49,9 @@ void goBack();
 void setBallSpeedSlow();
 void setBallSpeedMedium();
 void setBallSpeedFast();
+void setEasyMode();
+void setHardMode();
+void applyPaddleAcceleration();
 void noop() {}
 void preGameMenu();
 void mainGame();
@@ -73,12 +80,13 @@ MenuItem modeMenu[] = {
     {"CvC", noop, nullptr, 0},
     {"BACK", goBack, nullptr, 0}
 };
+// Update the difficulty menu to call the new functions
 MenuItem difficultyMenu[] = {
-    {"EASY", noop, nullptr, 0},
-    {"MEDIUM", noop, nullptr, 0},
-    {"HARD", noop, nullptr, 0},
+    {"EASY", setEasyMode, nullptr, 0},
+    {"HARD", setHardMode, nullptr, 0},
     {"BACK", goBack, nullptr, 0}
 };
+
 MenuItem mainMenu[] = {
     {"SPEED", showSpeedMenu, nullptr, 0},
     {"MODE", showModeMenu, nullptr, 0},
@@ -199,6 +207,19 @@ void showDifficultyMenu() {
     displayMenu();
 }
 
+// Difficulty functions
+void setEasyMode() {
+    currentDifficulty = EASY;
+    Serial.println("EASY");
+    goBack();
+}
+
+void setHardMode() {
+    currentDifficulty = HARD;
+    Serial.println("HARD");
+    goBack();
+}
+
 // Return to the main menu
 void goBack() {
     currentMenu = mainMenu;
@@ -246,6 +267,46 @@ void drawPaddles() {
     tft.fillRect(PADDLE_RIGHT_X, y2, PADDLE_WIDTH, PADDLE_LENGTH, ST7735_WHITE);
 }
 
+
+// Adjust ball reflection based on paddle position
+void reflectBallFromPaddle(int paddleTop, int paddleLength, int &ballVelX, int &ballVelY) {
+    // Calculate where the ball hits the paddle
+    int paddleCenter = paddleTop + paddleLength / 2;
+    int hitPosition = ballY - paddleCenter;
+
+    // Normalize hit position to a range of -1.0 to 1.0
+    float hitRatio = static_cast<float>(hitPosition) / (paddleLength / 2);
+
+    // Reverse the X direction
+    ballVelX = -ballVelX;
+
+    // Determine new vertical speed based on hit ratio
+    // Absolute value ensures increased speed regardless of direction
+    int newVerticalSpeed = static_cast<int>(1 + abs(hitRatio * 1)); // Adjust scale as needed
+
+    // Apply the appropriate sign to the vertical speed
+    if (hitRatio < 0) {
+        ballVelY = -newVerticalSpeed;
+    } else {
+        ballVelY = newVerticalSpeed;
+    }
+}
+
+// Accelerate paddle based on MPU6050 angles
+// HAS NO EFFECT RIGHT NOW --> the y1,y2 will anyway be overwritten 
+void applyPaddleAcceleration() {
+    // Acceleration logic for paddle movement
+    float accelFactor = 10;  // Adjust as necessary for boost
+
+    // Adjust the Y positions based on MPU6050 readings (amplified movement)
+    y1 += static_cast<int>(accelFactor * (mpu1.getAngleX() - lastY1));
+    y2 += static_cast<int>(accelFactor * (mpu2.getAngleX() - lastY2));
+
+    // Ensure paddles remain within screen bounds
+    y1 = constrain(y1, 0, tft.height() - PADDLE_LENGTH);
+    y2 = constrain(y2, 0, tft.height() - PADDLE_LENGTH);
+}
+
 // Detect which type of collision occurred
 CollisionType detectCollision() {
     if (ballY <= 0) return WALL_TOP;
@@ -268,7 +329,6 @@ CollisionType detectCollision() {
     return NONE;
 }
 
-// Update ball position based on collisions
 void updateBallPosition() {
     ballX += ballVelX;
     ballY += ballVelY;
@@ -279,8 +339,20 @@ void updateBallPosition() {
             ballVelY = -ballVelY;
             break;
         case PADDLE_LEFT:
+            if (currentDifficulty == EASY) {
+                reflectBallFromPaddle(lastY1, PADDLE_LENGTH, ballVelX, ballVelY);
+            } else {
+                applyPaddleAcceleration();
+                reflectBallFromPaddle(lastY1, PADDLE_LENGTH, ballVelX, ballVelY);
+            }
+            break;
         case PADDLE_RIGHT:
-            ballVelX = -ballVelX;
+            if (currentDifficulty == EASY) {
+                reflectBallFromPaddle(lastY2, PADDLE_LENGTH, ballVelX, ballVelY);
+            } else {
+                applyPaddleAcceleration();
+                reflectBallFromPaddle(lastY2, PADDLE_LENGTH, ballVelX, ballVelY);
+            }
             break;
         case OUT_OF_BOUNDS_LEFT:
             score2++;
@@ -294,7 +366,6 @@ void updateBallPosition() {
             break;
     }
 }
-
 // Handle scoring and initiate a new point
 void handleScoring(ProgramState winner) {
     if (score1 >= MAX_SCORE || score2 >= MAX_SCORE) {
