@@ -42,7 +42,7 @@ struct MenuItem {
 enum GameMode { PvP, PvC };
 GameMode currentGameMode = PvP;
 
-// npc Variables
+// NPC Variables
 int npcReactionDelay = 20; // Milliseconds delay
 unsigned long lastNpcMoveTime = 0;
 int npcOffset = 0; // Offset to simulate intentional errors
@@ -53,6 +53,7 @@ void displayMenu();
 void startGame();
 void showSpeedMenu();
 void showModeMenu();
+void showNpcDifficultyMenu();
 void showDifficultyMenu();
 void goBack();
 void setBallSpeedSlow();
@@ -62,6 +63,8 @@ void setEasyMode();
 void setHardMode();
 void setPvPMode();
 void setPvCMode();
+void setEasyNpc();
+void setHardNpc();
 void applyPaddleAcceleration();
 void noop() {}
 void preGameMenu();
@@ -76,7 +79,6 @@ void displayScore();
 int mapAngleToScreen(float angle);
 enum CollisionType { NONE, WALL_TOP, WALL_BOTTOM, PADDLE_LEFT, PADDLE_RIGHT, OUT_OF_BOUNDS_LEFT, OUT_OF_BOUNDS_RIGHT };
 CollisionType detectCollision();
-
 void handleScoring(ProgramState winner);
 
 // Menu item arrays
@@ -92,17 +94,23 @@ MenuItem modeMenu[] = {
     {"PvC", setPvCMode, nullptr, 0},
     {"BACK", goBack, nullptr, 0}
 };
-// Update the difficulty menu to call the new functions
+// NPC Difficulty Menu
+MenuItem npcDifficultyMenu[] = {
+    {"EASY", setEasyNpc, nullptr, 0},
+    {"HARD", setHardNpc, nullptr, 0},
+    {"BACK", goBack, nullptr, 0}
+};
+// Update the general difficulty menu to call the new functions
 MenuItem difficultyMenu[] = {
-    {"EASY", setEasyMode, nullptr, 0},
-    {"HARD", setHardMode, nullptr, 0},
+    {"EASY", setEasyNpc, nullptr, 0},
+    {"HARD", setHardNpc, nullptr, 0},
     {"BACK", goBack, nullptr, 0}
 };
 
 MenuItem mainMenu[] = {
     {"SPEED", showSpeedMenu, nullptr, 0},
     {"MODE", showModeMenu, nullptr, 0},
-    {"DIFFICULTY", showDifficultyMenu, nullptr, 0},
+    {"DIFFICULTY", showNpcDifficultyMenu, nullptr, 0},
     {"START", startGame, nullptr, 0}
 };
 
@@ -198,11 +206,6 @@ void showSpeedMenu() {
     displayMenu();
 }
 
-// Set ball speed functions that return to the main menu
-void setBallSpeedSlow() { ballVelX = 1; ballVelY = 1; goBack(); }
-void setBallSpeedMedium() { ballVelX = 2; ballVelY = 2; goBack(); }
-void setBallSpeedFast() { ballVelX = 3; ballVelY = 3; goBack(); }
-
 // Display the mode submenu
 void showModeMenu() {
     currentMenu = modeMenu;
@@ -211,26 +214,18 @@ void showModeMenu() {
     displayMenu();
 }
 
-// Display the difficulty submenu
-void showDifficultyMenu() {
-    currentMenu = difficultyMenu;
-    currentMenuSize = sizeof(difficultyMenu) / sizeof(MenuItem);
+// Display the NPC difficulty submenu
+void showNpcDifficultyMenu() {
+    currentMenu = npcDifficultyMenu;
+    currentMenuSize = sizeof(npcDifficultyMenu) / sizeof(MenuItem);
     currentSelection = 0;
     displayMenu();
 }
 
-// Difficulty functions
-void setEasyMode() {
-    currentDifficulty = EASY;
-    Serial.println("EASY");
-    goBack();
-}
-
-void setHardMode() {
-    currentDifficulty = HARD;
-    Serial.println("HARD");
-    goBack();
-}
+// Set ball speed functions that return to the main menu
+void setBallSpeedSlow() { ballVelX = 1; ballVelY = 1; goBack(); }
+void setBallSpeedMedium() { ballVelX = 2; ballVelY = 2; goBack(); }
+void setBallSpeedFast() { ballVelX = 3; ballVelY = 3; goBack(); }
 
 // Set the game mode to Player vs. Player
 void setPvPMode() {
@@ -238,31 +233,34 @@ void setPvPMode() {
     goBack();
 }
 
-// Set the game mode to Player vs. npc
+// Set the game mode to Player vs. NPC and show the difficulty selection
 void setPvCMode() {
     currentGameMode = PvC;
+    showNpcDifficultyMenu();
+}
+
+// Set NPC difficulty levels
+void setEasyNpc() {
+    npcReactionDelay = 50; // Slow reaction time
+    npcOffset = random(-10, 10); // Larger offset
     goBack();
 }
 
-// Set npc difficulty
-void setEasyNpc() {
-    npcReactionDelay = 300; // Slow reaction time
-    npcOffset = 10; // Larger offset
-}
-
 void setHardNpc() {
-    npcReactionDelay = 100; // Faster reaction time
-    npcOffset = 5; // Smaller offset
+    npcReactionDelay = 20; // Faster reaction time
+    npcOffset = random(-5, 5); // Smaller offset
+    goBack();
 }
 
-// Function to update the npc paddle
+// Function to update the NPC paddle
 void updateNpcPaddle(int &npcPaddleY, int ballY, int paddleSpeed) {
     if (millis() - lastNpcMoveTime > npcReactionDelay) {
-        int targetY = ballY + npcOffset;
+        int targetY = ballY + random(-npcOffset, npcOffset); // Add randomness
+
         if (npcPaddleY < targetY) {
-            npcPaddleY += paddleSpeed;
+            npcPaddleY += paddleSpeed; // Move down
         } else if (npcPaddleY > targetY) {
-            npcPaddleY -= paddleSpeed;
+            npcPaddleY -= paddleSpeed; // Move up
         }
 
         lastNpcMoveTime = millis();
@@ -271,7 +269,6 @@ void updateNpcPaddle(int &npcPaddleY, int ballY, int paddleSpeed) {
     // Ensure paddle stays within screen bounds
     npcPaddleY = constrain(npcPaddleY, 0, tft.height() - PADDLE_LENGTH);
 }
-
 
 // Return to the main menu
 void goBack() {
@@ -289,7 +286,6 @@ void startGame() {
 }
 
 // Main game loop for ball and paddle movements
-
 void mainGame() {
     mpu1.update(); // Always update the first player's gyroscope
     y1 = mapAngleToScreen(mpu1.getAngleX());
@@ -298,8 +294,7 @@ void mainGame() {
         mpu2.update(); // Second player is a human
         y2 = mapAngleToScreen(mpu2.getAngleX());
     } else if (currentGameMode == PvC) {
-        updateNpcPaddle(y2, ballY, 2); // npc controls the second paddle
-
+        updateNpcPaddle(y2, ballY, 2); // NPC controls the second paddle
     }
 
     drawPaddles();
@@ -325,42 +320,21 @@ void drawPaddles() {
     tft.fillRect(PADDLE_RIGHT_X, y2, PADDLE_WIDTH, PADDLE_LENGTH, ST7735_WHITE);
 }
 
-
 // Adjust ball reflection based on paddle position
 void reflectBallFromPaddle(int paddleTop, int paddleLength, int &ballVelX, int &ballVelY) {
-    // Calculate where the ball hits the paddle
     int paddleCenter = paddleTop + paddleLength / 2;
     int hitPosition = ballY - paddleCenter;
-
-    // Normalize hit position to a range of -1.0 to 1.0
     float hitRatio = static_cast<float>(hitPosition) / (paddleLength / 2);
-
-    // Reverse the X direction
     ballVelX = -ballVelX;
-
-    // Determine new vertical speed based on hit ratio
-    // Absolute value ensures increased speed regardless of direction
-    int newVerticalSpeed = static_cast<int>(1 + abs(hitRatio * 1)); // Adjust scale as needed
-
-    // Apply the appropriate sign to the vertical speed
-    if (hitRatio < 0) {
-        ballVelY = -newVerticalSpeed;
-    } else {
-        ballVelY = newVerticalSpeed;
-    }
+    int newVerticalSpeed = static_cast<int>(1 + abs(hitRatio * 1));
+    ballVelY = hitRatio < 0 ? -newVerticalSpeed : newVerticalSpeed;
 }
 
 // Accelerate paddle based on MPU6050 angles
-// HAS NO EFFECT RIGHT NOW --> the y1,y2 will anyway be overwritten 
 void applyPaddleAcceleration() {
-    // Acceleration logic for paddle movement
-    float accelFactor = 10;  // Adjust as necessary for boost
-
-    // Adjust the Y positions based on MPU6050 readings (amplified movement)
+    float accelFactor = 10;
     y1 += static_cast<int>(accelFactor * (mpu1.getAngleX() - lastY1));
     y2 += static_cast<int>(accelFactor * (mpu2.getAngleX() - lastY2));
-
-    // Ensure paddles remain within screen bounds
     y1 = constrain(y1, 0, tft.height() - PADDLE_LENGTH);
     y2 = constrain(y2, 0, tft.height() - PADDLE_LENGTH);
 }
@@ -369,21 +343,18 @@ void applyPaddleAcceleration() {
 CollisionType detectCollision() {
     if (ballY <= 0) return WALL_TOP;
     if (ballY >= tft.height() - BALL_SIZE) return WALL_BOTTOM;
-
     if (ballX <= PADDLE_WIDTH) {
         if (ballY + BALL_SIZE >= lastY1 && ballY <= lastY1 + PADDLE_LENGTH) {
             return PADDLE_LEFT;
         }
         return OUT_OF_BOUNDS_LEFT;
     }
-
     if (ballX >= tft.width() - PADDLE_WIDTH - BALL_SIZE) {
         if (ballY + BALL_SIZE >= lastY2 && ballY <= lastY2 + PADDLE_LENGTH) {
             return PADDLE_RIGHT;
         }
         return OUT_OF_BOUNDS_RIGHT;
     }
-
     return NONE;
 }
 
@@ -397,20 +368,10 @@ void updateBallPosition() {
             ballVelY = -ballVelY;
             break;
         case PADDLE_LEFT:
-            if (currentDifficulty == EASY) {
-                reflectBallFromPaddle(lastY1, PADDLE_LENGTH, ballVelX, ballVelY);
-            } else {
-                applyPaddleAcceleration();
-                reflectBallFromPaddle(lastY1, PADDLE_LENGTH, ballVelX, ballVelY);
-            }
+            reflectBallFromPaddle(lastY1, PADDLE_LENGTH, ballVelX, ballVelY);
             break;
         case PADDLE_RIGHT:
-            if (currentDifficulty == EASY) {
-                reflectBallFromPaddle(lastY2, PADDLE_LENGTH, ballVelX, ballVelY);
-            } else {
-                applyPaddleAcceleration();
-                reflectBallFromPaddle(lastY2, PADDLE_LENGTH, ballVelX, ballVelY);
-            }
+            reflectBallFromPaddle(lastY2, PADDLE_LENGTH, ballVelX, ballVelY);
             break;
         case OUT_OF_BOUNDS_LEFT:
             score2++;
@@ -424,6 +385,7 @@ void updateBallPosition() {
             break;
     }
 }
+
 // Handle scoring and initiate a new point
 void handleScoring(ProgramState winner) {
     if (score1 >= MAX_SCORE || score2 >= MAX_SCORE) {
