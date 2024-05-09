@@ -4,6 +4,8 @@
 #include <Adafruit_ST7735.h>
 #include <Wire.h>
 #include "MPU6050_light.h"
+#include <math.h>  // For the round function
+
 
 // Constants for TFT Display and game setup
 constexpr uint8_t TFT_CS = 10, TFT_RST = 8, TFT_DC = 9;
@@ -14,7 +16,10 @@ constexpr int PADDLE_LEFT_X = 0;       // X-coordinate for the left paddle
 constexpr int PADDLE_RIGHT_X = 124;    // X-coordinate for the right paddle
 
 // Game state variables
-int ballX = 64, ballY = 80, ballVelX = 1, ballVelY = 1;
+int ballVelXSet = 1 ,ballVelYSet = 1;  // speed variable for the game state, doesnt change during one game
+int ballVelX = 1, ballVelY = 1; // speed variables which can change during game
+int ballX = 64, ballY = 80;
+
 int lastY1 = 0, lastY2 = 0, y1 = 0, y2 = 0, score1 = 0, score2 = 0;
 bool finished = false;
 enum ProgramState { MENU, GAME, PLAYER1, PLAYER2 };
@@ -223,9 +228,9 @@ void showNpcDifficultyMenu() {
 }
 
 // Set ball speed functions that return to the main menu
-void setBallSpeedSlow() { ballVelX = 1; ballVelY = 1; goBack(); }
-void setBallSpeedMedium() { ballVelX = 2; ballVelY = 2; goBack(); }
-void setBallSpeedFast() { ballVelX = 3; ballVelY = 3; goBack(); }
+void setBallSpeedSlow() { ballVelXSet = 1; ballVelYSet = 1; goBack(); }
+void setBallSpeedMedium() { ballVelXSet = 2; ballVelYSet = 2; goBack(); }
+void setBallSpeedFast() { ballVelXSet = 3; ballVelYSet = 3; goBack(); }
 
 // Set the game mode to Player vs. Player
 void setPvPMode() {
@@ -287,6 +292,7 @@ void startGame() {
 
 // Main game loop for ball and paddle movements
 void mainGame() {
+  
     mpu1.update(); // Always update the first player's gyroscope
     y1 = mapAngleToScreen(mpu1.getAngleX());
 
@@ -322,12 +328,13 @@ void drawPaddles() {
 
 // Adjust ball reflection based on paddle position
 void reflectBallFromPaddle(int paddleTop, int paddleLength, int &ballVelX, int &ballVelY) {
+  
     int paddleCenter = paddleTop + paddleLength / 2;
     int hitPosition = ballY - paddleCenter;
     float hitRatio = static_cast<float>(hitPosition) / (paddleLength / 2);
     ballVelX = -ballVelX;
-    int newVerticalSpeed = static_cast<int>(1 + abs(hitRatio * 1));
-    ballVelY = hitRatio < 0 ? -newVerticalSpeed : newVerticalSpeed;
+    int newVerticalSpeed = ballVelY + static_cast<int>(round(hitRatio * 1));
+    ballVelY = newVerticalSpeed;//hitRatio < 0 ? -newVerticalSpeed : newVerticalSpeed;
 }
 
 // Accelerate paddle based on MPU6050 angles
@@ -400,6 +407,8 @@ void handleScoring(ProgramState winner) {
 void resetBall() {
     ballX = tft.width() / 2;
     ballY = tft.height() / 2;
+    ballVelX = ballVelXSet;
+    ballVelY = ballVelYSet;
 }
 
 // Start a new point and reset the ball position
