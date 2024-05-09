@@ -246,21 +246,22 @@ void setPvCMode() {
 
 // Set NPC difficulty levels
 void setEasyNpc() {
-    npcReactionDelay = 50; // Slow reaction time
-    npcOffset = random(-10, 10); // Larger offset
+    npcReactionDelay = 0; // Slow reaction time
+    npcOffset = 5; // Larger offset
     goBack();
 }
 
 void setHardNpc() {
-    npcReactionDelay = 20; // Faster reaction time
-    npcOffset = random(-5, 5); // Smaller offset
+    npcReactionDelay = 0; // Faster reaction time
+    npcOffset = 1; // Smaller offset
     goBack();
 }
 
 // Function to update the NPC paddle
 void updateNpcPaddle(int &npcPaddleY, int ballY, int paddleSpeed) {
     if (millis() - lastNpcMoveTime > npcReactionDelay) {
-        int targetY = ballY + random(-npcOffset, npcOffset); // Add randomness
+        int randomChange = random(-npcOffset, npcOffset);
+        int targetY = ballY + randomChange ; // Add randomness
 
         if (npcPaddleY < targetY) {
             npcPaddleY += paddleSpeed; // Move down
@@ -288,6 +289,9 @@ void startGame() {
     Serial.println("Starting game...");
     tft.fillScreen(ST7735_BLACK);
     currentState = GAME;
+    ballVelY = ballVelYSet;
+    ballVelX = ballVelXSet;
+    newPoint();
 }
 
 // Main game loop for ball and paddle movements
@@ -300,7 +304,7 @@ void mainGame() {
         mpu2.update(); // Second player is a human
         y2 = mapAngleToScreen(mpu2.getAngleX());
     } else if (currentGameMode == PvC) {
-        updateNpcPaddle(y2, ballY, 2); // NPC controls the second paddle
+        updateNpcPaddle(y2, ballY, abs(ballVelY)); // NPC controls the second paddle
     }
 
     drawPaddles();
@@ -409,6 +413,8 @@ void resetBall() {
     ballY = tft.height() / 2;
     ballVelX = ballVelXSet;
     ballVelY = ballVelYSet;
+    y1 = ballY;
+    y2 = ballY;
 }
 
 // Start a new point and reset the ball position
