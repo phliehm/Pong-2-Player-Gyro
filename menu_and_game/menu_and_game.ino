@@ -9,7 +9,7 @@
 
 // Constants for TFT Display and game setup
 constexpr uint8_t TFT_CS = 10, TFT_RST = 8, TFT_DC = 9;
-constexpr uint8_t BUTTON_PIN_NEXT = 2, BUTTON_PIN_SELECT = 3;
+constexpr uint8_t BUTTON_PIN_NEXT = 3, BUTTON_PIN_SELECT = 4;
 constexpr int BALL_SIZE = 4, PADDLE_LENGTH = 20, PADDLE_WIDTH = 4;
 constexpr int MAX_SCORE = 10;
 constexpr int PADDLE_LEFT_X = 0;       // X-coordinate for the left paddle
