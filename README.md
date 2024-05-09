@@ -50,6 +50,14 @@ Both can be installed via the arduino library manager
 
 # 3D-Printing Files
 - Controllers, basically only holders for the gyros. [Link](https://cad.onshape.com/documents/e8f608abf657cef6dc1b4666/w/007233a8e505381b6e8c31cd/e/1e409a07bb671ca26936d715)  
-  --> STLs can be found in the STL folder
-- Case (needs to be done)
- 
+--> The writing on the controller lids was done in Prusa Slicer.
+- Case [Link](https://cad.onshape.com/documents/bb15abfb982ffc7be8280d05/w/e47a952db4efe8e8367f25dd/e/e12617e322d90bede496db30)
+- Button head [Link](https://cad.onshape.com/documents/593a663a215a0de59f47d872/w/387619e9a005239f0a5c8544/e/6f2907867909ec2d1a77bdb4)
+--> STLs can be found in the STL folder
+
+# 3D-Print Settings
+Nothing special, easy print
+Prusa Mk3s
+0.6 nozzle
+0.4 layer height
+no supports
